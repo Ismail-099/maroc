@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  images      String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Artisan {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  image       String?
+  region      String
+  specialty   String
+  bio         String
+  rating      Float     @default(0)
+  reviewCount Int       @default(0)
+  products    Product[]
+  stories     Story[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  price       Int
+  oldPrice    Int?
+  images      String
+  inStock     Boolean  @default(true)
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+  material    String?
+  dimensions  String?
+  technique   String?
+  deliveryTime String?
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  artisanId   String
+  artisan     Artisan  @relation(fields: [artisanId], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  excerpt   String
+  content   String
+  image     String
+  category  String
+  artisanId String?
+  artisan   Artisan? @relation(fields: [artisanId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Partner {
+  id    String @id @default(cuid())
+  name  String
+  logo  String
+  order Int    @default(0)
+}
+
+model Testimonial {
+  id      String @id @default(cuid())
+  name    String
+  role    String
+  content String
+  image   String?
+}
+
+model SiteImage {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  label       String
+  src         String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}

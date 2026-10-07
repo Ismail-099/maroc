@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-sand text-stone-900 antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif;
+  }
+}
+
+@layer components {
+  .input {
+    @apply flex-1 min-w-0 border border-stone-300 px-2 py-1.5 text-xs bg-white text-stone-900 focus:outline-none focus:border-primary;
+  }
+  .btn-dark {
+    @apply bg-stone-900 text-white px-3 py-1.5 text-xs font-medium hover:bg-stone-800 transition-colors;
+  }
+  .btn-outline {
+    @apply border border-stone-300 text-stone-700 px-3 py-1.5 text-xs font-medium hover:bg-sand transition-colors;
+  }
+  .btn-danger {
+    @apply border border-red-300 text-red-600 px-2 py-1.5 hover:bg-red-50 transition-colors;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
