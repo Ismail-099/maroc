@@ -37,8 +37,8 @@ yarn-error.log*
 *.swp
 *.swo
 
-# prisma / sqlite (do not commit local DB)
-prisma/*.db
+# prisma / sqlite: keep dev.db for Vercel demo, ignore journals
+!prisma/dev.db
 prisma/*.db-journal
 
 # uploads (generated at runtime)
