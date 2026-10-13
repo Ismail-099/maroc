@@ -41,7 +41,7 @@ export default function Hero({ slides = defaultSlides }: { slides?: HeroSlide[] 
   }, [slides.length]);
 
   return (
-    <section className="relative h-[600px] flex items-center">
+    <section className="relative w-full min-h-[85vh] md:min-h-[calc(100vh-4rem)] flex items-center overflow-hidden">
       <div className="absolute inset-0">
         {slides.map((slide, i) => (
           <Image
@@ -55,9 +55,9 @@ export default function Hero({ slides = defaultSlides }: { slides?: HeroSlide[] 
             priority={i === 0}
           />
         ))}
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/30" />
       </div>
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white w-full">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white w-full py-20">
         <h1 className="text-4xl md:text-6xl font-serif font-bold leading-tight mb-6">
           L&apos;authenticite<br />du savoir-faire<br />marocain
         </h1>

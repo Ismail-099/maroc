@@ -3,6 +3,8 @@ import Image from "next/image";
 import { Star, Heart, MapPin, Clock, Ruler, Hammer, ArrowRight, MessageCircle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import ProductGallery from "@/components/ProductGallery";
+import FormattedPrice from "@/components/FormattedPrice";
 
 async function getProduct(slug: string) {
   const product = await prisma.product.findUnique({
@@ -10,11 +12,26 @@ async function getProduct(slug: string) {
     include: { category: true, artisan: true },
   });
   if (!product) return null;
+
+  // 1. Prioritize products from the exact same category
   const similar = await prisma.product.findMany({
     where: { categoryId: product.categoryId, id: { not: product.id } },
     take: 4,
-    include: { artisan: true },
+    include: { artisan: true, category: true },
   });
+
+  // 2. Fallback to other catalogue items if this category has fewer than 4 other products
+  if (similar.length < 4) {
+    const excludeIds = [product.id, ...similar.map((p) => p.id)];
+    const extra = await prisma.product.findMany({
+      where: { id: { notIn: excludeIds } },
+      take: 4 - similar.length,
+      orderBy: { rating: "desc" },
+      include: { artisan: true, category: true },
+    });
+    similar.push(...extra);
+  }
+
   return { product, similar };
 }
 
@@ -34,23 +51,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <span className="mx-2">/</span>
         <Link href={`/catalogue?category=${product.category.slug}`} className="hover:text-primary">{product.category.name}</Link>
         <span className="mx-2">/</span>
-        <span className="text-stone-900">{product.name}</span>
+        <span className="text-stone-900 font-medium">{product.name}</span>
       </nav>
 
-      <div className="grid lg:grid-cols-[3fr_2fr] gap-12 mb-16">
-        {/* Images */}
-        <div className="flex gap-4">
-          <div className="flex flex-col gap-3">
-            {images.slice(0, 4).map((img: string, i: number) => (
-              <div key={i} className="relative w-16 h-16 overflow-hidden border border-stone-200 cursor-pointer hover:border-primary">
-                <Image src={img.trim()} alt="" fill className="object-cover" />
-              </div>
-            ))}
-          </div>
-          <div className="relative flex-1 aspect-[3/4] overflow-hidden bg-stone-100">
-            <Image src={images[0].trim()} alt={product.name} fill className="object-cover" />
-          </div>
-        </div>
+      <div className="grid lg:grid-cols-[1.2fr_1fr] gap-12 mb-16 items-start">
+        {/* Interactive Gallery */}
+        <ProductGallery images={images} productName={product.name} />
 
         {/* Info */}
         <div>
@@ -65,19 +71,19 @@ export default async function ProductPage({ params }: { params: { slug: string }
           </div>
 
           <div className="flex items-center gap-4 text-sm text-stone-600 mb-6">
-            <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {product.artisan.region}</span>
-            <span className="flex items-center gap-1"><Hammer className="w-4 h-4" /> {product.artisan.name}</span>
+            <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-primary" /> {product.artisan.region}</span>
+            <span className="flex items-center gap-1"><Hammer className="w-4 h-4 text-primary" /> {product.artisan.name}</span>
             {product.inStock ? (
-              <span className="text-green-600 font-medium">En stock</span>
+              <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-xs font-semibold">En stock</span>
             ) : (
-              <span className="text-red-500 font-medium">Rupture de stock</span>
+              <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded text-xs font-semibold">Rupture de stock</span>
             )}
           </div>
 
           <div className="flex items-center gap-4 mb-8">
-            <span className="text-3xl font-bold text-stone-900">{product.price} MAD</span>
+            <FormattedPrice amount={product.price} className="text-3xl font-bold text-stone-900" />
             {product.oldPrice && (
-              <span className="text-lg text-stone-400 line-through">{product.oldPrice} MAD</span>
+              <FormattedPrice amount={product.oldPrice} className="text-lg text-stone-400 line-through" />
             )}
           </div>
 
@@ -177,26 +183,45 @@ export default async function ProductPage({ params }: { params: { slug: string }
         </div>
       </div>
 
-      {/* Similar products */}
+      {/* Vous aimerez aussi (Produits similaires du même catalogue) */}
       {similar.length > 0 && (
-        <div>
-          <h2 className="text-xl font-serif font-bold text-stone-900 mb-6">Produits similaires</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <section className="mt-12 sm:mt-16 md:mt-20 pt-10 sm:pt-14 md:pt-16 border-t border-stone-200/70">
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-xs md:text-sm font-medium tracking-[0.25em] text-stone-800 uppercase">
+              Vous aimerez aussi
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-6 md:gap-8">
             {similar.map((p: any) => {
-              const img = p.images.split("|")[0];
+              const img = p.images.split("|")[0].trim();
               return (
-                <Link key={p.id} href={`/produit/${p.slug}`} className="group block">
-                  <div className="relative aspect-square overflow-hidden bg-stone-100 mb-3">
-                    <Image src={img} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                <Link
+                  key={p.id}
+                  href={`/produit/${p.slug}`}
+                  className="group block text-center"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden bg-[#faf8f5] mb-2.5 sm:mb-4 flex items-center justify-center">
+                    <Image
+                      src={img}
+                      alt={p.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                    />
                   </div>
-                  <h3 className="font-medium text-stone-900 text-sm group-hover:text-primary transition-colors">{p.name}</h3>
-                  <p className="text-xs text-stone-500">{p.artisan.name}</p>
-                  <p className="font-semibold text-stone-900 mt-1">{p.price} MAD</p>
+                  <h3 className="font-sans text-[11px] md:text-xs font-normal tracking-[0.15em] text-stone-800 uppercase line-clamp-2 leading-relaxed px-0.5 sm:px-1 group-hover:text-stone-500 transition-colors">
+                    {p.name}
+                  </h3>
+                  <FormattedPrice
+                    amount={p.price}
+                    className="text-[11px] text-stone-500 font-light mt-1 sm:mt-1.5 block tracking-wide"
+                  />
                 </Link>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

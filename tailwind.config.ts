@@ -10,28 +10,33 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#8B4513",
-          dark: "#5D2E0C",
-          light: "#A0522D",
+          DEFAULT: "#111111", // Noir Haute Couture (profond, intemporel)
+          dark: "#000000",
+          light: "#2A2A2A",
+        },
+        terracotta: {
+          DEFAULT: "#A84C2C", // Touche terracotta subtile marocaine
+          dark: "#84361C",
+          light: "#C66744",
         },
         accent: {
-          DEFAULT: "#D4AF37",
-          dark: "#B8960C",
-          light: "#E5C158",
+          DEFAULT: "#A84C2C", // Accent terracotta couture
+          dark: "#84361C",
+          light: "#C66744",
         },
         sand: {
-          DEFAULT: "#F5F0E6",
-          dark: "#E8E0D1",
-          light: "#FAF7F1",
+          DEFAULT: "#FFFFFF", // Fond Blanc Pur Studio Haute Couture
+          dark: "#F4F4F4",    // Gris studio minimaliste
+          light: "#FFFFFF",   // Blanc absolu
         },
         clay: {
-          DEFAULT: "#C19A6B",
-          dark: "#A07850",
+          DEFAULT: "#E5E5E5",
+          dark: "#CCCCCC",
         },
       },
       fontFamily: {
-        serif: ["Georgia", "Cambria", "Times New Roman", "serif"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        serif: ["var(--font-cinzel)", "Didot", "Bodoni MT", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "Inter", "system-ui", "sans-serif"],
       },
     },
   },

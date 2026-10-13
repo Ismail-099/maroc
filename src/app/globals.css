@@ -4,26 +4,25 @@
 
 @layer base {
   body {
-    @apply bg-sand text-stone-900 antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    @apply bg-white text-stone-900 antialiased selection:bg-stone-900 selection:text-white;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif;
+    @apply font-serif tracking-tight font-medium;
   }
 }
 
 @layer components {
   .input {
-    @apply flex-1 min-w-0 border border-stone-300 px-2 py-1.5 text-xs bg-white text-stone-900 focus:outline-none focus:border-primary;
+    @apply flex-1 min-w-0 border border-stone-200 px-3 py-2 text-xs bg-white text-stone-900 focus:outline-none focus:border-stone-900 transition-colors;
   }
   .btn-dark {
-    @apply bg-stone-900 text-white px-3 py-1.5 text-xs font-medium hover:bg-stone-800 transition-colors;
+    @apply bg-stone-900 text-white px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-stone-800 transition-colors;
   }
   .btn-outline {
-    @apply border border-stone-300 text-stone-700 px-3 py-1.5 text-xs font-medium hover:bg-sand transition-colors;
+    @apply border border-stone-200 text-stone-900 px-4 py-2 text-xs font-medium uppercase tracking-wider hover:bg-stone-50 transition-colors;
   }
   .btn-danger {
-    @apply border border-red-300 text-red-600 px-2 py-1.5 hover:bg-red-50 transition-colors;
+    @apply border border-red-200 text-red-600 px-3 py-2 text-xs hover:bg-red-50 transition-colors;
   }
 }
 
@@ -31,4 +30,27 @@
   .text-balance {
     text-wrap: balance;
   }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Subtle smooth page entrance animations */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
