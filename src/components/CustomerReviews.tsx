@@ -1,5 +1,6 @@
 import { Star, ShieldCheck, CheckCircle2, HeartHandshake, PackageCheck } from "lucide-react";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
 
 interface Review {
   id: string;
@@ -14,7 +15,7 @@ interface Review {
   avatarText: string;
 }
 
-const reviews: Review[] = [
+const defaultReviews: Review[] = [
   {
     id: "1",
     author: "Sophie Delaunay",
@@ -56,7 +57,56 @@ const reviews: Review[] = [
   },
 ];
 
-export default function CustomerReviews() {
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+export default async function CustomerReviews() {
+  const testimonials = await prisma.testimonial.findMany({ take: 6 });
+
+  let reviews: Review[] = defaultReviews;
+  if (testimonials && testimonials.length > 0) {
+    reviews = testimonials.map((t, idx) => {
+      let city = "Client";
+      let country = "Maroc";
+      let productName = "Création artisanale";
+      let productSlug: string | undefined = undefined;
+
+      if (t.role) {
+        if (t.role.includes("•")) {
+          const [loc, prod] = t.role.split("•").map((s) => s.trim());
+          if (loc.includes(",")) {
+            const [c, co] = loc.split(",").map((s) => s.trim());
+            city = c || city;
+            country = co || country;
+          } else {
+            city = loc;
+          }
+          productName = prod || productName;
+        } else {
+          city = t.role;
+        }
+      }
+
+      const ratingNum = t.image && !isNaN(Number(t.image)) ? Math.min(5, Math.max(1, Number(t.image))) : 5;
+
+      return {
+        id: t.id,
+        author: t.name,
+        city,
+        country,
+        date: idx === 0 ? "Il y a 3 jours" : idx === 1 ? "Il y a 1 semaine" : "Récemment",
+        productName,
+        productSlug,
+        rating: ratingNum,
+        content: t.content,
+        avatarText: getInitials(t.name),
+      };
+    });
+  }
+
   return (
     <section className="py-14 sm:py-20 md:py-24 bg-stone-50 border-t border-stone-200/70">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

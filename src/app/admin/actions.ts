@@ -6,8 +6,17 @@ import { redirect } from "next/navigation";
 import { writeFile, mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
 
-function refresh() {
+function refresh(formData?: FormData) {
+  const returnTo = formData ? str(formData, "returnTo") : "";
+  const tab = formData ? str(formData, "tab") : "";
   revalidatePath("/", "layout");
+  if (returnTo) {
+    const separator = returnTo.includes("?") ? "&" : "?";
+    redirect(`${returnTo}${separator}saved=1`);
+  }
+  if (tab) {
+    redirect(`/admin?tab=${encodeURIComponent(tab)}&saved=1`);
+  }
   redirect("/admin?saved=1");
 }
 
@@ -46,14 +55,14 @@ export async function updateSiteImage(formData: FormData) {
   const data: { src: string; description?: string } = { src };
   if (formData.has("description")) data.description = str(formData, "description");
   await prisma.siteImage.update({ where: { id }, data });
-  refresh();
+  refresh(formData);
 }
 
 export async function deleteSiteImage(formData: FormData) {
   const id = str(formData, "id");
   if (!id) return;
   await prisma.siteImage.delete({ where: { id } });
-  refresh();
+  refresh(formData);
 }
 
 export async function toggleSiteImageActive(formData: FormData) {
@@ -62,7 +71,7 @@ export async function toggleSiteImageActive(formData: FormData) {
   const cur = await prisma.siteImage.findUnique({ where: { id } });
   if (!cur) return;
   await prisma.siteImage.update({ where: { id }, data: { isActive: !cur.isActive } });
-  refresh();
+  refresh(formData);
 }
 
 export async function addSiteImage(formData: FormData) {
@@ -75,7 +84,7 @@ export async function addSiteImage(formData: FormData) {
   await prisma.siteImage.create({
     data: { key: `hero-${Date.now()}`, label: label || `Hero - slide ${count + 1}`, src, description },
   });
-  refresh();
+  refresh(formData);
 }
 
 // Entity description field per model
@@ -95,7 +104,7 @@ export async function updateEntity(formData: FormData) {
   if (src) data.image = src;
   if (Object.keys(data).length === 0) return;
   await (prisma as any)[model].update({ where: { id }, data });
-  refresh();
+  refresh(formData);
 }
 
 export async function clearEntityImage(formData: FormData) {
@@ -103,7 +112,7 @@ export async function clearEntityImage(formData: FormData) {
   const id = str(formData, "id");
   if (!id || !["category", "artisan"].includes(model)) return;
   await (prisma as any)[model].update({ where: { id }, data: { image: null } });
-  refresh();
+  refresh(formData);
 }
 
 export async function updateProductInfo(formData: FormData) {
@@ -111,7 +120,7 @@ export async function updateProductInfo(formData: FormData) {
   const description = str(formData, "description");
   if (!id) return;
   await prisma.product.update({ where: { id }, data: { description } });
-  refresh();
+  refresh(formData);
 }
 
 // Generic helpers for models with a pipe-separated `images` field (Product, Category).
@@ -138,7 +147,7 @@ export async function addListImage(formData: FormData) {
   const images = await getImageList(model, id);
   images.push(src);
   await setImageList(model, id, images);
-  refresh();
+  refresh(formData);
 }
 
 export async function updateListImage(formData: FormData) {
@@ -151,7 +160,7 @@ export async function updateListImage(formData: FormData) {
   if (index < 0 || index >= images.length) return;
   images[index] = src;
   await setImageList(model, id, images);
-  refresh();
+  refresh(formData);
 }
 
 export async function deleteListImage(formData: FormData) {
@@ -163,7 +172,7 @@ export async function deleteListImage(formData: FormData) {
   if (images.length <= 1 || index < 0 || index >= images.length) return;
   images.splice(index, 1);
   await setImageList(model, id, images);
-  refresh();
+  refresh(formData);
 }
 
 export async function deleteUploadedFile(formData: FormData) {
@@ -171,5 +180,134 @@ export async function deleteUploadedFile(formData: FormData) {
   if (!src.startsWith("/uploads/")) return;
   const name = path.basename(src);
   await unlink(path.join(process.cwd(), "public", "uploads", name)).catch(() => {});
-  refresh();
+  refresh(formData);
 }
+
+export async function addTestimonial(formData: FormData) {
+  const name = str(formData, "name");
+  const role = str(formData, "role") || "Client vérifié";
+  const content = str(formData, "content");
+  const image = str(formData, "rating") || "5";
+  if (!name || !content) return;
+  await prisma.testimonial.create({
+    data: { name, role, content, image },
+  });
+  refresh(formData);
+}
+
+export async function updateTestimonial(formData: FormData) {
+  const id = str(formData, "id");
+  const name = str(formData, "name");
+  const role = str(formData, "role") || "Client vérifié";
+  const content = str(formData, "content");
+  const image = str(formData, "rating") || "5";
+  if (!id || !name || !content) return;
+  await prisma.testimonial.update({
+    where: { id },
+    data: { name, role, content, image },
+  });
+  refresh(formData);
+}
+
+export async function deleteTestimonial(formData: FormData) {
+  const id = str(formData, "id");
+  if (!id) return;
+  await prisma.testimonial.delete({ where: { id } });
+  refresh(formData);
+}
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export async function createProduct(formData: FormData) {
+  const name = str(formData, "name");
+  const price = parseInt(str(formData, "price"), 10) || 0;
+  const categoryId = str(formData, "categoryId");
+  let artisanId = str(formData, "artisanId");
+  const description = str(formData, "description");
+  const material = str(formData, "material");
+  const dimensions = str(formData, "dimensions");
+  const technique = str(formData, "technique");
+  const deliveryTime = str(formData, "deliveryTime") || "3 à 7 jours";
+
+  if (!name || !price || !categoryId) return;
+
+  if (!artisanId) {
+    const firstArtisan = await prisma.artisan.findFirst();
+    if (firstArtisan) artisanId = firstArtisan.id;
+  }
+  if (!artisanId) return;
+
+  const src = (await resolveSrc(formData)) || "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=800";
+  let slug = slugify(name);
+  const exists = await prisma.product.findUnique({ where: { slug } });
+  if (exists) {
+    slug = `${slug}-${Date.now().toString(36)}`;
+  }
+
+  await prisma.product.create({
+    data: {
+      name,
+      slug,
+      price,
+      categoryId,
+      artisanId,
+      description: description || name,
+      material: material || null,
+      dimensions: dimensions || null,
+      technique: technique || null,
+      deliveryTime,
+      images: src,
+    },
+  });
+
+  refresh(formData, "/admin/produits");
+}
+
+export async function deleteProduct(formData: FormData) {
+  const id = str(formData, "id");
+  if (!id) return;
+  await prisma.product.delete({ where: { id } });
+  refresh(formData, "/admin/produits");
+}
+
+export async function createCategory(formData: FormData) {
+  const name = str(formData, "name");
+  const description = str(formData, "description");
+  if (!name) return;
+
+  const src = (await resolveSrc(formData)) || "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=800";
+  let slug = slugify(name);
+  const exists = await prisma.category.findUnique({ where: { slug } });
+  if (exists) {
+    slug = `${slug}-${Date.now().toString(36)}`;
+  }
+
+  await prisma.category.create({
+    data: {
+      name,
+      slug,
+      description: description || name,
+      images: src,
+    },
+  });
+
+  refresh(formData, "/admin/collections");
+}
+
+export async function deleteCategory(formData: FormData) {
+  const id = str(formData, "id");
+  if (!id) return;
+  // Delete associated products
+  await prisma.product.deleteMany({ where: { categoryId: id } });
+  await prisma.category.delete({ where: { id } });
+  refresh(formData, "/admin/collections");
+}
+
+

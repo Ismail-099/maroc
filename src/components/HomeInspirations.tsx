@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Instagram } from "lucide-react";
+import { getSiteImageDetails } from "@/lib/siteImages";
 
 interface InspirationItem {
   id: string;
@@ -13,7 +14,7 @@ interface InspirationItem {
   city: string;
 }
 
-const inspirations: InspirationItem[] = [
+const defaultInspirations: InspirationItem[] = [
   {
     id: "1",
     image: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800",
@@ -56,7 +57,35 @@ const inspirations: InspirationItem[] = [
   },
 ];
 
-export default function HomeInspirations() {
+export default async function HomeInspirations() {
+  const [i1, i2, i3, i4] = await Promise.all([
+    getSiteImageDetails("inspiration-1", defaultInspirations[0].image, defaultInspirations[0].author),
+    getSiteImageDetails("inspiration-2", defaultInspirations[1].image, defaultInspirations[1].author),
+    getSiteImageDetails("inspiration-3", defaultInspirations[2].image, defaultInspirations[2].author),
+    getSiteImageDetails("inspiration-4", defaultInspirations[3].image, defaultInspirations[3].author),
+  ]);
+
+  const parseAuthorCity = (desc: string, defAuthor: string, defCity: string) => {
+    if (!desc) return { author: defAuthor, city: defCity };
+    if (desc.includes("|")) {
+      const parts = desc.split("|").map((s) => s.trim());
+      return { author: parts[0] || defAuthor, city: parts[1] || defCity };
+    }
+    return { author: desc, city: defCity };
+  };
+
+  const c1 = parseAuthorCity(i1.description, defaultInspirations[0].author, defaultInspirations[0].city);
+  const c2 = parseAuthorCity(i2.description, defaultInspirations[1].author, defaultInspirations[1].city);
+  const c3 = parseAuthorCity(i3.description, defaultInspirations[2].author, defaultInspirations[2].city);
+  const c4 = parseAuthorCity(i4.description, defaultInspirations[3].author, defaultInspirations[3].city);
+
+  const inspirations = [
+    { ...defaultInspirations[0], image: i1.src, author: c1.author, city: c1.city },
+    { ...defaultInspirations[1], image: i2.src, author: c2.author, city: c2.city },
+    { ...defaultInspirations[2], image: i3.src, author: c3.author, city: c3.city },
+    { ...defaultInspirations[3], image: i4.src, author: c4.author, city: c4.city },
+  ];
+
   return (
     <section className="py-14 sm:py-20 md:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

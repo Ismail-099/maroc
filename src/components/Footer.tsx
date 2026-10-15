@@ -1,7 +1,33 @@
+"use client";
+
 import Link from "next/link";
-import { Instagram, Facebook, Twitter, Youtube } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Instagram, Facebook, Twitter, Youtube, Shield } from "lucide-react";
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/admin")) {
+    return (
+      <footer className="bg-stone-950 text-stone-400 py-6 text-xs border-t border-stone-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div className="flex items-center gap-2">
+            <Shield className="w-3.5 h-3.5 text-[#A84C2C]" />
+            <span className="font-serif font-bold text-white uppercase tracking-wider">Artisanat Maroc</span>
+            <span className="text-stone-600">•</span>
+            <span>Espace d&apos;Administration Sécurisé</span>
+          </div>
+          <div className="flex items-center gap-4 text-stone-400">
+            <Link href="/" target="_blank" className="hover:text-white transition-colors">
+              Voir la boutique en direct ↗
+            </Link>
+            <span className="text-stone-700">•</span>
+            <span>&copy; {new Date().getFullYear()} Tous droits réservés</span>
+          </div>
+        </div>
+      </footer>
+    );
+  }
   return (
     <footer className="bg-stone-900 text-stone-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -1,379 +1,402 @@
-import Image from "next/image";
-import { Images, LogOut, LibraryBig, Check, LayoutGrid, Plus } from "lucide-react";
-import { readdir } from "node:fs/promises";
-import path from "node:path";
-import { prisma } from "@/lib/prisma";
-import { logout } from "./login/actions";
+import Link from "next/link";
 import {
-  updateSiteImage,
-  deleteSiteImage,
-  addSiteImage,
-  toggleSiteImageActive,
-  updateEntity,
-  clearEntityImage,
-  updateProductInfo,
-  addListImage,
-  updateListImage,
-  deleteListImage,
-} from "./actions";
-import ImageSourcePicker from "@/components/admin/ImageSourcePicker";
-import LibraryItem from "@/components/admin/LibraryItem";
-import SaveButton from "@/components/admin/SaveButton";
-import ImageCard, { ImageCardBadge } from "@/components/admin/ImageCard";
+  ExternalLink,
+  LayoutGrid,
+  Sparkles,
+  Camera,
+  Star,
+  Layers,
+  ShoppingBag,
+  Hammer,
+  BookOpen,
+  LibraryBig,
+  ArrowRight,
+  Shield,
+  FileText,
+  Images,
+} from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { getUploads } from "@/lib/adminUploads";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Admin • Tableau de Bord" };
 
-export const metadata = { title: "Admin - Gestion des images" };
-
-const PLACEMENT: Record<string, string> = {
-  hero: "Accueil - Hero",
-  "banner-catalogue": "Page Catalogue",
-  "banner-magazine": "Page Magazine",
-  "banner-contact": "Page Contact",
-  "image-apropos": "Page A propos",
-  "section-story": "Accueil - Histoire",
-  "section-magazine": "Accueil - Magazine",
-};
-
-async function getUploads(): Promise<string[]> {
-  try {
-    const dir = path.join(process.cwd(), "public", "uploads");
-    const files = await readdir(dir);
-    return files
-      .filter((f) => /\.(jpe?g|png|webp|gif|avif)$/i.test(f))
-      .map((f) => `/uploads/${f}`)
-      .reverse();
-  } catch {
-    return [];
-  }
-}
-
-export default async function AdminPage({ searchParams }: { searchParams: { saved?: string } }) {
-  const [siteImages, categories, artisans, products, stories, uploads] = await Promise.all([
-    prisma.siteImage.findMany({ orderBy: { createdAt: "asc" } }),
-    prisma.category.findMany({ orderBy: { name: "asc" } }),
-    prisma.artisan.findMany({ orderBy: { name: "asc" } }),
-    prisma.product.findMany({ include: { category: true }, orderBy: { name: "asc" } }),
-    prisma.story.findMany({ orderBy: { title: "asc" } }),
+export default async function AdminDashboardPage() {
+  const [
+    heroCount,
+    materialCount,
+    inspirationCount,
+    categoryCount,
+    productCount,
+    artisanCount,
+    reviewCount,
+    storyCount,
+    uploads,
+  ] = await Promise.all([
+    prisma.siteImage.count({ where: { key: { startsWith: "hero-" } } }),
+    prisma.siteImage.count({ where: { key: { startsWith: "material-" } } }),
+    prisma.siteImage.count({ where: { key: { startsWith: "inspiration-" } } }),
+    prisma.category.count(),
+    prisma.product.count(),
+    prisma.artisan.count(),
+    prisma.testimonial.count(),
+    prisma.story.count(),
     getUploads(),
   ]);
 
-  const heroSlides = siteImages.filter((i) => i.key.startsWith("hero-"));
-  const pageImages = siteImages.filter((i) => !i.key.startsWith("hero-"));
-
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8 flex items-start justify-between gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-sans">
+      {/* Header */}
+      <div className="mb-10 border-b border-stone-200/80 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-serif font-bold text-stone-900 flex items-center gap-3">
-            <Images className="w-7 h-7 text-primary" /> Gestion des images
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-[#A84C2C] font-semibold flex items-center gap-1">
+              <Shield className="w-3 h-3" /> Espace Administration
+            </span>
+            <span className="text-stone-300">•</span>
+            <span className="text-xs text-stone-500">Haute Artisanat Marocain</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight">
+            Tableau de Bord
           </h1>
-          <p className="text-sm text-stone-500 mt-2">
-            Cliquez sur l&apos;icone crayon pour modifier une image, ou sur la poubelle pour la supprimer.
+          <p className="text-xs sm:text-sm text-stone-500 mt-1 font-light">
+            Chaque section du site dispose de sa page d&apos;administration dédiée pour une gestion claire et isolée.
           </p>
         </div>
-        <form action={logout}>
-          <button type="submit" className="btn-outline flex items-center gap-2 shrink-0 text-xs">
-            <LogOut className="w-3.5 h-3.5" /> Deconnexion
-          </button>
-        </form>
+
+        <Link
+          href="/"
+          target="_blank"
+          className="btn-outline flex items-center gap-2 text-xs py-2 px-3 self-start md:self-auto hover:border-stone-900"
+        >
+          <ExternalLink className="w-3.5 h-3.5 text-[#A84C2C]" />
+          <span>Voir la boutique en direct</span>
+        </Link>
       </div>
 
-      {searchParams.saved === "1" && (
-        <div className="mb-8 border border-green-300 bg-green-50 text-green-800 text-sm px-4 py-3 flex items-center gap-2">
-          <Check className="w-4 h-4" /> Modifications enregistrees.
-        </div>
-      )}
-
-      {/* Library */}
-      <Section title="Images importees" count={uploads.length} icon={<LibraryBig className="w-4 h-4" />}>
-        {uploads.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-            {uploads.map((src) => (
-              <LibraryItem key={src} src={src} />
-            ))}
+      {/* Group 1: Sections de la Page d'Accueil */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-stone-200">
+          <div>
+            <h2 className="text-base sm:text-lg font-serif font-bold text-stone-900 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#A84C2C]" />
+              Sections de la Page d&apos;Accueil
+            </h2>
+            <p className="text-xs text-stone-500 font-light mt-0.5">
+              Éditez chaque bloc visuel de la page principale sur sa page dédiée.
+            </p>
           </div>
-        ) : (
-          <Empty text="Aucune image importee. Utilisez le bouton Importer sur une carte." />
-        )}
-      </Section>
-
-      {/* Hero */}
-      <Section title="Diaporama Hero" count={heroSlides.length} icon={<LayoutGrid className="w-4 h-4" />}>
-        <CardGrid>
-          {heroSlides.map((img, idx) => (
-            <ImageCard
-              key={img.id}
-              src={img.src}
-              alt={img.description || img.label}
-              title={`Slide ${idx + 1}`}
-              description={img.description ?? ""}
-              descriptionLabel="Description (alt)"
-              badges={[
-                { label: "Hero", variant: "primary" },
-                { label: "Accueil", variant: "muted" },
-              ]}
-              status={img.isActive ? "active" : "inactive"}
-              editAction={updateSiteImage}
-              editHiddenInputs={<input type="hidden" name="id" value={img.id} />}
-              deleteAction={deleteSiteImage}
-              deleteHiddenInputs={<input type="hidden" name="id" value={img.id} />}
-              toggleAction={toggleSiteImageActive}
-              toggleHiddenInputs={<input type="hidden" name="id" value={img.id} />}
-              uploads={uploads}
-            />
-          ))}
-        </CardGrid>
-        <AddSiteImageForm uploads={uploads} />
-      </Section>
-
-      {/* Page banners */}
-      <Section title="Bannieres et sections" count={pageImages.length} icon={<LayoutGrid className="w-4 h-4" />}>
-        <CardGrid>
-          {pageImages.map((img) => (
-            <ImageCard
-              key={img.id}
-              src={img.src}
-              alt={img.description || img.label}
-              title={img.label}
-              description={img.description ?? ""}
-              descriptionLabel="Description (alt)"
-              badges={[{ label: PLACEMENT[img.key] ?? "Page", variant: "muted" }]}
-              editAction={updateSiteImage}
-              editHiddenInputs={<input type="hidden" name="id" value={img.id} />}
-              uploads={uploads}
-            />
-          ))}
-        </CardGrid>
-      </Section>
-
-      {/* Categories */}
-      <Section title="Categories" count={categories.length} icon={<LayoutGrid className="w-4 h-4" />}>
-        <div className="space-y-4">
-          {categories.map((cat) => {
-            const list = cat.images
-              ? cat.images.split("|").map((s) => s.trim()).filter(Boolean)
-              : [];
-            return (
-              <EntityBlock key={cat.id} name={cat.name}>
-                <DescriptionForm
-                  action={updateEntity}
-                  hiddenInputs={[
-                    <input key="m" type="hidden" name="model" value="category" />,
-                    <input key="i" type="hidden" name="id" value={cat.id} />,
-                  ]}
-                  description={cat.description ?? ""}
-                  label="Description de la categorie"
-                />
-                <CardGrid>
-                  {list.map((src, idx) => (
-                    <ImageCard
-                      key={`${cat.id}-${idx}`}
-                      src={src}
-                      alt={cat.name}
-                      title={`Image ${idx + 1}`}
-                      badges={[{ label: cat.name, variant: "muted" }, { label: "Categorie" }]}
-                      editAction={updateListImage}
-                      editHiddenInputs={[
-                        <input key="m" type="hidden" name="model" value="category" />,
-                        <input key="i" type="hidden" name="id" value={cat.id} />,
-                        <input key="x" type="hidden" name="index" value={idx} />,
-                      ]}
-                      deleteAction={list.length > 1 ? deleteListImage : undefined}
-                      deleteHiddenInputs={[
-                        <input key="m" type="hidden" name="model" value="category" />,
-                        <input key="i" type="hidden" name="id" value={cat.id} />,
-                        <input key="x" type="hidden" name="index" value={idx} />,
-                      ]}
-                      uploads={uploads}
-                    />
-                  ))}
-                  <AddImageCard model="category" id={cat.id} uploads={uploads} />
-                </CardGrid>
-              </EntityBlock>
-            );
-          })}
+          <span className="text-xs text-stone-400">4 modules</span>
         </div>
-      </Section>
 
-      {/* Artisans */}
-      <Section title="Artisans" count={artisans.length} icon={<LayoutGrid className="w-4 h-4" />}>
-        <CardGrid>
-          {artisans.map((a) => (
-            <ImageCard
-              key={a.id}
-              src={a.image ?? ""}
-              alt={a.name}
-              title={a.name}
-              description={a.bio ?? ""}
-              descriptionLabel="Biographie"
-              badges={[{ label: "Artisan", variant: "muted" }, { label: a.specialty }]}
-              editAction={updateEntity}
-              editHiddenInputs={[
-                <input key="m" type="hidden" name="model" value="artisan" />,
-                <input key="i" type="hidden" name="id" value={a.id} />,
-              ]}
-              deleteAction={clearEntityImage}
-              deleteHiddenInputs={[
-                <input key="m" type="hidden" name="model" value="artisan" />,
-                <input key="i" type="hidden" name="id" value={a.id} />,
-              ]}
-              uploads={uploads}
-            />
-          ))}
-        </CardGrid>
-      </Section>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Hero */}
+          <Link
+            href="/admin/hero"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <LayoutGrid className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {heroCount} slides
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Diaporama Hero
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Grandes photographies de couverture, activation et textes défilants en tête du site.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer le diaporama</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
 
-      {/* Products */}
-      <Section title="Produits" count={products.length} icon={<LayoutGrid className="w-4 h-4" />}>
-        <div className="space-y-4">
-          {products.map((p) => {
-            const list = p.images
-              .split("|")
-              .map((s: string) => s.trim())
-              .filter(Boolean);
-            return (
-              <EntityBlock key={p.id} name={p.name}>
-                <DescriptionForm
-                  action={updateProductInfo}
-                  hiddenInputs={<input type="hidden" name="id" value={p.id} />}
-                  description={p.description ?? ""}
-                  label="Description du produit"
-                />
-                <CardGrid>
-                  {list.map((src, idx) => (
-                    <ImageCard
-                      key={`${p.id}-${idx}`}
-                      src={src}
-                      alt={p.name}
-                      title={`Image ${idx + 1}`}
-                      badges={[{ label: p.category.name, variant: "muted" }, { label: "Produit" }]}
-                      editAction={updateListImage}
-                      editHiddenInputs={[
-                        <input key="m" type="hidden" name="model" value="product" />,
-                        <input key="i" type="hidden" name="id" value={p.id} />,
-                        <input key="x" type="hidden" name="index" value={idx} />,
-                      ]}
-                      deleteAction={list.length > 1 ? deleteListImage : undefined}
-                      deleteHiddenInputs={[
-                        <input key="m" type="hidden" name="model" value="product" />,
-                        <input key="i" type="hidden" name="id" value={p.id} />,
-                        <input key="x" type="hidden" name="index" value={idx} />,
-                      ]}
-                      uploads={uploads}
-                    />
-                  ))}
-                  <AddImageCard model="product" id={p.id} uploads={uploads} />
-                </CardGrid>
-              </EntityBlock>
-            );
-          })}
+          {/* Histoire */}
+          <Link
+            href="/admin/histoire"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  Actif
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Histoire &amp; Savoir-faire
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Section « Une histoire humaine », photo d&apos;ambiance des maîtres artisans.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer l&apos;histoire</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
+
+          {/* Matières */}
+          <Link
+            href="/admin/matieres"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {materialCount} matières
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Matières Nobles
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Les 4 piliers : Laine Vierge, Argile de Safi, Cèdre/Thuya et Cuir Végétal.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer les matières</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
+
+          {/* Inspirations */}
+          <Link
+            href="/admin/inspirations"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <Camera className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {inspirationCount} photos
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Inspirations Déco
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Galerie #ArtisanatMarocChezVous, intérieurs clients, comptes Instagram et villes.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer les inspirations</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
         </div>
-      </Section>
+      </div>
 
-      {/* Stories */}
-      <Section title="Magazine" count={stories.length} icon={<LayoutGrid className="w-4 h-4" />}>
-        <CardGrid>
-          {stories.map((s) => (
-            <ImageCard
-              key={s.id}
-              src={s.image}
-              alt={s.title}
-              title={s.title}
-              description={s.excerpt}
-              descriptionLabel="Resume"
-              badges={[{ label: "Article", variant: "muted" }, { label: s.category }]}
-              editAction={updateEntity}
-              editHiddenInputs={[
-                <input key="m" type="hidden" name="model" value="story" />,
-                <input key="i" type="hidden" name="id" value={s.id} />,
-              ]}
-              uploads={uploads}
-            />
-          ))}
-        </CardGrid>
-      </Section>
+      {/* Group 2: Catalogue & Boutique */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-stone-200">
+          <div>
+            <h2 className="text-base sm:text-lg font-serif font-bold text-stone-900 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-stone-900" />
+              Catalogue &amp; Produits
+            </h2>
+            <p className="text-xs text-stone-500 font-light mt-0.5">
+              Gestion de votre inventaire, galeries multi-angles et collections.
+            </p>
+          </div>
+          <span className="text-xs text-stone-400">2 modules</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {/* Collections */}
+          <Link
+            href="/admin/collections"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {categoryCount} catégories
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Collections &amp; Catégories
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Bannière de la page catalogue, photos de couverture et descriptions des 6 univers artisanaux.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer les collections</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
+
+          {/* Produits */}
+          <Link
+            href="/admin/produits"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <ShoppingBag className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {productCount} produits
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Produits du Catalogue
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Fiches détaillées, galeries d&apos;images (ajout/suppression), descriptions et prix en Dirhams.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer les produits</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Group 3: Communauté & Contenus */}
+      <div>
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-stone-200">
+          <div>
+            <h2 className="text-base sm:text-lg font-serif font-bold text-stone-900 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-stone-400" />
+              Contenus, Artisans &amp; Médias
+            </h2>
+            <p className="text-xs text-stone-500 font-light mt-0.5">
+              Témoignages, récits du magazine, créateurs et fichiers importés.
+            </p>
+          </div>
+          <span className="text-xs text-stone-400">4 modules</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Avis */}
+          <Link
+            href="/admin/avis"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {reviewCount} avis
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Avis Clients
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Témoignages vérifiés 5 étoiles affichés en réassurance sur l&apos;accueil.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer les avis</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
+
+          {/* Artisans */}
+          <Link
+            href="/admin/artisans"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <Hammer className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {artisanCount} créateurs
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Artisans &amp; Profils
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Biographies, régions de fabrication, spécialités et photos de profil.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer les artisans</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
+
+          {/* Magazine */}
+          <Link
+            href="/admin/magazine"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <BookOpen className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {storyCount} articles
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Magazine Culturel
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Articles, photos de récits et encart aperçu au bas de l&apos;accueil.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer le magazine</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
+
+          {/* Médiathèque */}
+          <Link
+            href="/admin/mediatheque"
+            className="group bg-white border border-stone-200 p-5 hover:border-stone-900 hover:shadow-md transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded bg-stone-100 flex items-center justify-center text-stone-900 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                  <LibraryBig className="w-4 h-4" />
+                </div>
+                <span className="text-[10px] font-mono uppercase bg-stone-100 text-stone-600 px-2 py-0.5 rounded">
+                  {uploads.length} fichiers
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-stone-900 text-base mb-1 group-hover:text-[#A84C2C] transition-colors">
+                Médiathèque
+              </h3>
+              <p className="text-xs text-stone-500 font-light leading-relaxed mb-4">
+                Fichiers téléversés sur le serveur, liens à copier et gestion du stockage.
+              </p>
+            </div>
+            <div className="text-xs font-semibold text-stone-900 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span>Gérer les médias</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#A84C2C]" />
+            </div>
+          </Link>
+        </div>
+      </div>
     </div>
-  );
-}
-
-function Section({ title, count, icon, children }: { title: string; count: number; icon?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="mb-10">
-      <div className="mb-5 border-b border-stone-200 pb-2 flex items-center gap-2">
-        {icon}
-        <h2 className="text-base font-serif font-bold text-stone-900">{title}</h2>
-        <span className="text-xs text-stone-400">({count})</span>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function CardGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{children}</div>;
-}
-
-function EntityBlock({ name, children }: { name: string; children: React.ReactNode }) {
-  return (
-    <div className="border border-stone-200 bg-white p-4">
-      <h3 className="font-medium text-stone-900 text-sm mb-3">{name}</h3>
-      {children}
-    </div>
-  );
-}
-
-function DescriptionForm({
-  action,
-  hiddenInputs,
-  description,
-  label,
-}: {
-  action: (fd: FormData) => Promise<void>;
-  hiddenInputs: React.ReactNode;
-  description: string;
-  label: string;
-}) {
-  return (
-    <form action={action} className="flex gap-2 items-start mb-4">
-      {hiddenInputs}
-      <div className="flex-1 min-w-0">
-        <label className="text-[10px] uppercase tracking-wider text-stone-500 mb-1 block">{label}</label>
-        <textarea name="description" rows={2} defaultValue={description} className="input" />
-      </div>
-      <SaveButton className="self-start" />
-    </form>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return <p className="text-sm text-stone-400 italic">{text}</p>;
-}
-
-function AddSiteImageForm({ uploads }: { uploads: string[] }) {
-  return (
-    <form action={addSiteImage} className="mt-4 border border-dashed border-stone-300 bg-white p-4 max-w-xl">
-      <p className="text-xs font-semibold text-stone-700 mb-2">Ajouter une slide Hero</p>
-      <input type="hidden" name="group" value="hero" />
-      <input name="label" placeholder="Nom de la slide" className="input mb-2" />
-      <ImageSourcePicker uploads={uploads} />
-      <textarea name="description" rows={2} placeholder="Description (alt)" className="input mt-2" />
-      <SaveButton label="Ajouter" variant="outline" className="mt-2" />
-    </form>
-  );
-}
-
-function AddImageCard({ model, id, uploads }: { model: "category" | "product"; id: string; uploads: string[] }) {
-  return (
-    <form action={addListImage} className="border border-dashed border-stone-300 bg-stone-50/50 p-4 flex flex-col justify-center min-h-[220px]">
-      <input type="hidden" name="model" value={model} />
-      <input type="hidden" name="id" value={id} />
-      <div className="text-center mb-3">
-        <Plus className="w-8 h-8 text-stone-300 mx-auto" />
-        <p className="text-xs text-stone-500 mt-1">Ajouter une image</p>
-      </div>
-      <ImageSourcePicker uploads={uploads} showLibrary={false} />
-      <SaveButton label="Ajouter" variant="outline" className="mt-2" />
-    </form>
   );
 }

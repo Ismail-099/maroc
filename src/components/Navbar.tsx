@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Search, ShoppingBag, Heart, Menu, X } from "lucide-react";
 import CurrencySelector from "@/components/CurrencySelector";
+import AdminNavbar from "@/components/admin/AdminNavbar";
 
 const navLinks = [
   { href: "/", label: "Accueil" },
@@ -14,7 +16,12 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  if (pathname.startsWith("/admin")) {
+    return <AdminNavbar />;
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-stone-200/80">

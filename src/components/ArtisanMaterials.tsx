@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, Sparkles, Leaf, Compass, Feather } from "lucide-react";
+import { getSiteImageDetails } from "@/lib/siteImages";
 
 interface MaterialItem {
   id: string;
@@ -16,7 +17,7 @@ interface MaterialItem {
   icon: typeof Leaf;
 }
 
-const materials: MaterialItem[] = [
+const defaultMaterials: MaterialItem[] = [
   {
     id: "laine",
     name: "La Laine Vierge de l'Atlas",
@@ -75,7 +76,21 @@ const materials: MaterialItem[] = [
   },
 ];
 
-export default function ArtisanMaterials() {
+export default async function ArtisanMaterials() {
+  const [laine, argile, bois, cuir] = await Promise.all([
+    getSiteImageDetails("material-laine", defaultMaterials[0].image, defaultMaterials[0].craftSecret),
+    getSiteImageDetails("material-argile", defaultMaterials[1].image, defaultMaterials[1].craftSecret),
+    getSiteImageDetails("material-bois", defaultMaterials[2].image, defaultMaterials[2].craftSecret),
+    getSiteImageDetails("material-cuir", defaultMaterials[3].image, defaultMaterials[3].craftSecret),
+  ]);
+
+  const materials = [
+    { ...defaultMaterials[0], image: laine.src, craftSecret: laine.description || defaultMaterials[0].craftSecret },
+    { ...defaultMaterials[1], image: argile.src, craftSecret: argile.description || defaultMaterials[1].craftSecret },
+    { ...defaultMaterials[2], image: bois.src, craftSecret: bois.description || defaultMaterials[2].craftSecret },
+    { ...defaultMaterials[3], image: cuir.src, craftSecret: cuir.description || defaultMaterials[3].craftSecret },
+  ];
+
   return (
     <section className="py-14 sm:py-20 md:py-24 bg-[#FAF8F5] border-y border-stone-200/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
