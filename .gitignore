@@ -41,5 +41,7 @@ yarn-error.log*
 !prisma/dev.db
 prisma/*.db-journal
 
-# uploads (generated at runtime)
-public/uploads
+# uploads (track uploaded images so they deploy to Vercel)
+!public/uploads
+!public/uploads/*
+
