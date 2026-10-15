@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { writeFile, mkdir, unlink } from "node:fs/promises";
 import path from "node:path";
 
-function refresh(formData?: FormData) {
+function refresh(formData?: FormData, defaultFallback: string = "/admin") {
   const returnTo = formData ? str(formData, "returnTo") : "";
   const tab = formData ? str(formData, "tab") : "";
   revalidatePath("/", "layout");
@@ -17,7 +17,7 @@ function refresh(formData?: FormData) {
   if (tab) {
     redirect(`/admin?tab=${encodeURIComponent(tab)}&saved=1`);
   }
-  redirect("/admin?saved=1");
+  redirect(`${defaultFallback}?saved=1`);
 }
 
 function str(fd: FormData, key: string) {
